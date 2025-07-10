@@ -55,11 +55,11 @@ async def start(client, message: Message):
     )
 
     for post in saved_posts:
-        try:
-            links = extract_links(post.get("text") or post.get("caption", ""))
-            clean_text = remove_links_from_text(post.get("text") or post.get("caption", ""), links)
-            buttons = [{"text": f"🔗 Visit Link {i+1}", "url": link} for i, link in enumerate(links)]
-            kb = build_keyboard(buttons) if buttons else None
+    try:
+        buttons = post.get("buttons", [])
+        kb = build_keyboard(buttons) if buttons else None
+        clean_text = post.get("text") or post.get("caption", "")
+     
 
             if post["type"] == "text":
                 await client.send_message(user_id, clean_text, reply_markup=kb)
