@@ -1,6 +1,6 @@
 services:
   - type: web
-    name: allvideoslink-bot
+    name: allvideoslinkbot1
     env: python
     plan: free
     buildCommand: pip install -r requirements.txt
