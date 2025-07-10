@@ -17,7 +17,7 @@ USER_FILE = "users.json"
 POST_FILE = "posts.json"
 
 # ====== Initialize Pyrogram Client ======
-app = Client("AllVideosLinkBot", api_id=API_ID, api_hash=API_HASH, bot_token=BOT_TOKEN)
+app = Client("AllVideosLink_Bot", api_id=API_ID, api_hash=API_HASH, bot_token=BOT_TOKEN)
 
 # ====== Flask web service for Render ======
 web_app = Flask(__name__)
@@ -59,7 +59,7 @@ async def start(client, message: Message):
     users.add(user_id)
     save_json(USER_FILE, list(users))
 
-    welcome = f"Hello! {user_name}, welcome to @AllVideosLinkBot."
+    welcome = f"Hello! {user_name}, welcome to @AllVideosLink_Bot."
 
     await message.reply(
         text=welcome,
