@@ -8,7 +8,7 @@ from flask import Flask, request
 from config import API_ID, API_HASH, BOT_TOKEN, ADMIN_ID, ONLINE_USERS, USER_FILE, POST_FILE
 
 # Initialize Clients
-app = Client("AllVideosLinkBot", api_id=API_ID, api_hash=API_HASH, bot_token=BOT_TOKEN)
+app = Client("AllVideosLink_Bot", api_id=API_ID, api_hash=API_HASH, bot_token=BOT_TOKEN)
 web_app = Flask(__name__)
 
 # Helper Functions
@@ -45,7 +45,7 @@ async def start(client, message: Message):
     users.add(user_id)
     save_json(USER_FILE, list(users))
 
-    welcome = f"Hello! {user_name}, welcome to @AllVideosLinkBot."
+    welcome = f"Hello! {user_name}, welcome to @AllVideosLink_Bot."
 
     await message.reply(
         text=welcome,
