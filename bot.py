@@ -95,7 +95,7 @@ async def start(client, message: Message):
 # ====== Admin Broadcast ======
 @app.on_message(filters.private & filters.user(ADMIN_ID))
 async def admin_post(client, message: Message):
-
+    pass
     # ====== Delete Last Post from All Users ======
 @app.on_message(filters.private & filters.user(ADMIN_ID) & filters.command("delete"))
 async def delete_last_post(client, message: Message):
