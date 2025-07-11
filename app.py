@@ -128,6 +128,9 @@ async def delete_by_id(client, message: Message):
         except Exception as e:
             print(f"❌ Failed to delete from {uid}: {e}")
     await message.reply(f"✅ Post with message ID {msg_id} deleted from all users.")
+
+    @app.on_message(filters.private & filters.user(ADMIN_ID))
+async def admin_post(client, message: Message):
     
     caption = message.caption or ""
     text = message.text or caption
