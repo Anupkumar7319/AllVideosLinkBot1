@@ -4,3 +4,4 @@ flask
 python-dotenv
 pymongo==4.13.2
 dnspython
+gunicorn
