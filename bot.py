@@ -6,13 +6,13 @@ from pyrogram.types import Message, InlineKeyboardMarkup, InlineKeyboardButton
 from flask import Flask, request
 
 # ====== CONFIG (Use environment variables or manually add) ======
-API_ID = int(os.getenv("API_ID", "YOUR_API_ID"))
-API_HASH = os.getenv("API_HASH", "YOUR_API_HASH")
-BOT_TOKEN = os.getenv("BOT_TOKEN", "YOUR_BOT_TOKEN")
-ADMIN_ID = int(os.getenv("ADMIN_ID", "YOUR_ADMIN_ID"))
+API_ID = int(os.getenv("API_ID", "123456"))
+API_HASH = os.getenv("API_HASH", "your_api_hash")
+BOT_TOKEN = os.getenv("BOT_TOKEN", "your_bot_token")
+ADMIN_ID = int(os.getenv("ADMIN_ID", "123456789"))
+
 ONLINE_USERS = "5,00,00+"
-CHANNELS_ID = "CHANNELS_ID"
-CHANNELS = "CHANNELS_ID"
+CHANNELS = [int(ch.strip()) for ch in os.getenv("CHANNELS_ID", "").split(",") if ch.strip().isdigit()]
 
 # ====== FILE PATHS ======
 USER_FILE = "users.json"
@@ -84,15 +84,6 @@ async def start(client, message: Message):
                 await client.send_video(user_id, post["file_id"], caption=clean_text, reply_markup=kb)
         except Exception as e:
             print(f"❌ Failed to send to {user_id}: {e}")
-            
-            if post["type"] == "text":
-                await client.send_message(user_id, clean_text, reply_markup=kb)
-            elif post["type"] == "photo":
-                await client.send_photo(user_id, post["file_id"], caption=clean_text, reply_markup=kb)
-            elif post["type"] == "video":
-                await client.send_video(user_id, post["file_id"], caption=clean_text, reply_markup=kb)
-        except Exception as e:
-            print(f"❌ Failed to send to {user_id}: {e}")
 
 # ✅ 1. Admin Broadcast Function
 @app.on_message(filters.private & filters.user(ADMIN_ID))
@@ -127,21 +118,21 @@ async def admin_post(client, message: Message):
         except Exception as e:
             print(f"❌ Failed to send to {uid}: {e}")
 
+    # 🔁 Broadcast to all registered channels
+    for channel_id in CHANNELS:
+        try:
+            if message.text:
+                await client.send_message(channel_id, message.text, reply_markup=kb)
+            elif message.photo:
+                await client.send_photo(channel_id, message.photo.file_id, caption=clean_text, reply_markup=kb)
+            elif message.video:
+                await client.send_video(channel_id, message.video.file_id, caption=clean_text, reply_markup=kb)
+        except Exception as e:
+            print(f"❌ Failed to send to channel {channel_id}: {e}")
+
     saved_posts.append(new_post)
     save_json(POST_FILE, saved_posts)
     await client.send_message(ADMIN_ID, "✅ Broadcast done and saved.")
-
-# 🔁 Broadcast to all registered channels
-for channel_id in CHANNELS:
-    try:
-        if message.text:
-            await client.send_message(channel_id, message.text, reply_markup=kb if 'kb' in locals() else None)
-        elif message.photo:
-            await client.send_photo(channel_id, message.photo.file_id, caption=clean_text, reply_markup=kb if 'kb' in locals() else None)
-        elif message.video:
-            await client.send_video(channel_id, message.video.file_id, caption=clean_text, reply_markup=kb if 'kb' in locals() else None)
-    except Exception as e:
-        print(f"❌ Failed to send to channel {channel_id}: {e}")
 
 # ✅ 2. Delete Last Post
 @app.on_message(filters.private & filters.user(ADMIN_ID) & filters.command("delete"))
@@ -210,8 +201,3 @@ if __name__ == "__main__":
 
     # Start Telegram bot
     app.run()
-    
-    except Exception as e:
-        print(f"⚠️ Error: {e}")
-        print("🔁 Restarting fallback backup_bot.py...")
-        os.system("python3 backup_bot.py")
