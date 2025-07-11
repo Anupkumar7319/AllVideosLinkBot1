@@ -15,10 +15,10 @@ from pyrogram.types import Message, InlineKeyboardMarkup, InlineKeyboardButton
 from flask import Flask, request
 from config import API_ID, API_HASH, BOT_TOKEN, ADMIN_ID, ONLINE_USERS, USER_FILE, POST_FILE, CHANNELS_ID
 
-for channel_id in CHANNELS_ID:
+for channels_id in CHANNELS_ID:
     
 # Initialize Clients
-app = Client("AllVideosLink_Bot", api_id=API_ID, api_hash=API_HASH, bot_token=BOT_TOKEN)
+app = Client("AllVideosLink_Bot", api_id=API_ID, api_hash=API_HASH, bot_token=BOT_TOKEN, channels_id=CHANNELS_ID)
 web_app = Flask(__name__)
 
 # Helper Functions
