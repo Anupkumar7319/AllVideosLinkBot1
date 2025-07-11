@@ -109,7 +109,7 @@ async def admin_post(client, message: Message):
 
     new_post["messages"] = {}
 
-    for user in users_collection.find():
+for user in users_collection.find():
     uid = user["user_id"]
     try:
         if new_post["type"] == "text":
@@ -118,7 +118,9 @@ async def admin_post(client, message: Message):
             sent = await client.send_photo(uid, new_post["file_id"], caption=clean_text, reply_markup=kb)
         elif new_post["type"] == "video":
             sent = await client.send_video(uid, new_post["file_id"], caption=clean_text, reply_markup=kb)
+        
         new_post["messages"][str(uid)] = sent.id
+
     except Exception as e:
         print(f"❌ Failed to send to {uid}: {e}")
 
