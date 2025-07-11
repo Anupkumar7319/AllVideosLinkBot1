@@ -14,3 +14,9 @@ POST_FILE = "posts.json"
 
 CHANNELS = CHANNELS_ID
 CHANNELS_ID = ["CHANNELS_ID"]
+
+MONGO_URI = os.getenv("MONGO_URI")  # MongoDB connection URI from Render
+
+MONGO_DB_NAME = "mybotdb"
+USER_COLLECTION = "users"
+POST_COLLECTION = "posts"
