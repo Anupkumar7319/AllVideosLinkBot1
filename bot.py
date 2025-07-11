@@ -148,3 +148,8 @@ if __name__ == "__main__":
 
     # Start Telegram bot
     app.run()
+    
+    except Exception as e:
+        print(f"⚠️ Error: {e}")
+        print("🔁 Restarting fallback backup_bot.py...")
+        os.system("python3 backup_bot.py")
