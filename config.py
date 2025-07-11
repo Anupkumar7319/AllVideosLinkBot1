@@ -12,4 +12,5 @@ ONLINE_USERS = "5,00,00+"
 USER_FILE = "users.json"
 POST_FILE = "posts.json"
 
+CHANNELS = CHANNELS_ID
 CHANNELS_ID = ["CHANNELS_ID"]
