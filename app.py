@@ -80,6 +80,54 @@ async def start(client, message: Message):
 
 @app.on_message(filters.private & filters.user(ADMIN_ID))
 async def admin_post(client, message: Message):
+
+    # ====== Delete Last Post from All Users ======
+@app.on_message(filters.private & filters.user(ADMIN_ID) & filters.command("delete"))
+async def delete_last_post(client, message: Message):
+    if saved_posts:
+        last_post = saved_posts.pop()
+        save_json(POST_FILE, saved_posts)
+        for uid in users:
+            msg_id = last_post.get("messages", {}).get(str(uid))
+            if msg_id:
+                try:
+                    await client.delete_messages(uid, msg_id)
+                except Exception as e:
+                    print(f"❌ Failed to delete from {uid}: {e}")
+        await message.reply("✅ Last post deleted from all users.")
+    else:
+        await message.reply("⚠️ No posts to delete.")
+
+# ====== Delete All Posts from All Users ======
+@app.on_message(filters.private & filters.user(ADMIN_ID) & filters.command("alldelete"))
+async def delete_all_posts(client, message: Message):
+    for post in saved_posts:
+        for uid in users:
+            msg_id = post.get("messages", {}).get(str(uid))
+            if msg_id:
+                try:
+                    await client.delete_messages(uid, msg_id)
+                except Exception as e:
+                    print(f"❌ Failed to delete from {uid}: {e}")
+    saved_posts.clear()
+    save_json(POST_FILE, saved_posts)
+    await message.reply("✅ All posts deleted from all users.")
+
+# ====== Delete Specific Message ID from All Users ======
+@app.on_message(filters.private & filters.user(ADMIN_ID) & filters.command("selectanddelete"))
+async def delete_by_id(client, message: Message):
+    args = message.text.split()
+    if len(args) != 2 or not args[1].isdigit():
+        await message.reply("⚠️ Usage: /selectanddelete <message_id>")
+        return
+    msg_id = int(args[1])
+    for uid in users:
+        try:
+            await client.delete_messages(uid, msg_id)
+        except Exception as e:
+            print(f"❌ Failed to delete from {uid}: {e}")
+    await message.reply(f"✅ Post with message ID {msg_id} deleted from all users.")
+    
     caption = message.caption or ""
     text = message.text or caption
     links = extract_links(text)
