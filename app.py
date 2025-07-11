@@ -55,12 +55,20 @@ async def start(client, message: Message):
     )
 
     for post in saved_posts:
-    try:
-        buttons = post.get("buttons", [])
-        kb = build_keyboard(buttons) if buttons else None
-        clean_text = post.get("text") or post.get("caption", "")
-     
+        try:
+            buttons = post.get("buttons", [])
+            kb = build_keyboard(buttons) if buttons else None
+            clean_text = post.get("text") or post.get("caption", "")
 
+            if post["type"] == "text":
+                await client.send_message(user_id, clean_text, reply_markup=kb)
+            elif post["type"] == "photo":
+                await client.send_photo(user_id, post["file_id"], caption=clean_text, reply_markup=kb)
+            elif post["type"] == "video":
+                await client.send_video(user_id, post["file_id"], caption=clean_text, reply_markup=kb)
+        except Exception as e:
+            print(f"❌ Failed to send to {user_id}: {e}")
+            
             if post["type"] == "text":
                 await client.send_message(user_id, clean_text, reply_markup=kb)
             elif post["type"] == "photo":
