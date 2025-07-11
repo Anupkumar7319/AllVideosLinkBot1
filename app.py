@@ -123,5 +123,11 @@ def root():
     return "Bot is running!", 200
 
 if __name__ == "__main__":
-    threading.Thread(target=lambda: web_app.run(host="0.0.0.0", port=5000), daemon=True).start()
-    app.run()
+    import threading
+    try:
+        threading.Thread(target=lambda: web_app.run(host="0.0.0.0", port=5000), daemon=True).start()
+        app.run()
+    except Exception as e:
+        print(f"⚠️ Error: {e}")
+        print("🔁 Restarting fallback backup_bot.py...")
+        os.system("python3 backup_bot.py")
