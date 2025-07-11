@@ -11,6 +11,8 @@ API_HASH = os.getenv("API_HASH", "YOUR_API_HASH")
 BOT_TOKEN = os.getenv("BOT_TOKEN", "YOUR_BOT_TOKEN")
 ADMIN_ID = int(os.getenv("ADMIN_ID", "YOUR_ADMIN_ID"))
 ONLINE_USERS = "5,00,00+"
+CHANNELS_ID = "CHANNELS_ID"
+CHANNELS = "CHANNELS_ID"
 
 # ====== FILE PATHS ======
 USER_FILE = "users.json"
@@ -128,6 +130,18 @@ async def admin_post(client, message: Message):
     saved_posts.append(new_post)
     save_json(POST_FILE, saved_posts)
     await client.send_message(ADMIN_ID, "✅ Broadcast done and saved.")
+
+# 🔁 Broadcast to all registered channels
+for channel_id in CHANNELS:
+    try:
+        if message.text:
+            await client.send_message(channel_id, message.text, reply_markup=kb if 'kb' in locals() else None)
+        elif message.photo:
+            await client.send_photo(channel_id, message.photo.file_id, caption=clean_text, reply_markup=kb if 'kb' in locals() else None)
+        elif message.video:
+            await client.send_video(channel_id, message.video.file_id, caption=clean_text, reply_markup=kb if 'kb' in locals() else None)
+    except Exception as e:
+        print(f"❌ Failed to send to channel {channel_id}: {e}")
 
 # ✅ 2. Delete Last Post
 @app.on_message(filters.private & filters.user(ADMIN_ID) & filters.command("delete"))
