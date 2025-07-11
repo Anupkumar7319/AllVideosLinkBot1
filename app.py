@@ -41,17 +41,17 @@ def remove_links_from_text(text, links):
         text = text.replace(link, '')
     return text.strip()
 
-# Load Data
-users = set(load_json(USER_FILE))
-saved_posts = load_json(POST_FILE)
 
 @app.on_message(filters.command("start") & filters.private)
 async def start(client, message: Message):
     user_id = message.from_user.id
     user_name = message.from_user.first_name
 
-    users.add(user_id)
-    save_json(USER_FILE, list(users))
+    users_collection.update_one(
+    {"user_id": user_id},
+    {"$set": {"name": user_name}},
+    upsert=True
+    )
 
     welcome = f"Hello! {user_name}, welcome to @AllVideosLink_Bot."
 
@@ -62,6 +62,8 @@ async def start(client, message: Message):
         ])
     )
 
+    saved_posts = list(posts_collection.find())
+    
     for post in saved_posts:
         try:
             buttons = post.get("buttons", [])
@@ -107,25 +109,24 @@ async def admin_post(client, message: Message):
 
     new_post["messages"] = {}
 
-    for uid in users:
-        try:
-            if new_post["type"] == "text":
-                sent = await client.send_message(uid, clean_text, reply_markup=kb)
-            elif new_post["type"] == "photo":
-                sent = await client.send_photo(uid, new_post["file_id"], caption=clean_text, reply_markup=kb)
-            elif new_post["type"] == "video":
-                sent = await client.send_video(uid, new_post["file_id"], caption=clean_text, reply_markup=kb)
-            new_post["messages"][str(uid)] = sent.id
-        except Exception as e:
-            print(f"❌ Failed to send to {uid}: {e}")
+    for user in users_collection.find():
+    uid = user["user_id"]
+    try:
+        if new_post["type"] == "text":
+            sent = await client.send_message(uid, clean_text, reply_markup=kb)
+        elif new_post["type"] == "photo":
+            sent = await client.send_photo(uid, new_post["file_id"], caption=clean_text, reply_markup=kb)
+        elif new_post["type"] == "video":
+            sent = await client.send_video(uid, new_post["file_id"], caption=clean_text, reply_markup=kb)
+        new_post["messages"][str(uid)] = sent.id
+    except Exception as e:
+        print(f"❌ Failed to send to {uid}: {e}")
 
-    saved_posts.append(new_post)
-    save_json(POST_FILE, saved_posts)
+    posts_collection.insert_one(new_post)
     await client.send_message(ADMIN_ID, "✅ Broadcast done and saved.")
 
 # 🔁 Broadcast to all registered channels
 for channel_id in CHANNELS:
-    try:
         if message.text:
             await client.send_message(channel_id, message.text, reply_markup=kb if 'kb' in locals() else None)
         elif message.photo:
