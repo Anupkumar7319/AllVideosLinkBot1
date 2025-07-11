@@ -122,7 +122,11 @@ async def admin_post(client, message: Message):
     except Exception as e:
         print(f"❌ Failed to send to {uid}: {e}")
 
-    posts_collection.insert_one(new_post)
+    # Save new post
+posts_collection.insert_one(new_post)
+
+# Load all posts
+saved_posts = list(posts_collection.find())
     await client.send_message(ADMIN_ID, "✅ Broadcast done and saved.")
 
 # 🔁 Broadcast to all registered channels
