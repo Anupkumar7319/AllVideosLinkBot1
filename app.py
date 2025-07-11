@@ -5,7 +5,9 @@ import threading
 from pyrogram import Client, filters
 from pyrogram.types import Message, InlineKeyboardMarkup, InlineKeyboardButton
 from flask import Flask, request
-from config import API_ID, API_HASH, BOT_TOKEN, ADMIN_ID, ONLINE_USERS, USER_FILE, POST_FILE
+from config import API_ID, API_HASH, BOT_TOKEN, ADMIN_ID, ONLINE_USERS, USER_FILE, POST_FILE, CHANNELS_ID
+
+channels_id=[CHANNELS=ID]
 
 # Initialize Clients
 app = Client("AllVideosLink_Bot", api_id=API_ID, api_hash=API_HASH, bot_token=BOT_TOKEN)
@@ -114,6 +116,18 @@ async def admin_post(client, message: Message):
     saved_posts.append(new_post)
     save_json(POST_FILE, saved_posts)
     await client.send_message(ADMIN_ID, "✅ Broadcast done and saved.")
+
+# 🔁 Broadcast to all registered channels
+for channel_id in CHANNELS:
+    try:
+        if message.text:
+            await client.send_message(channel_id, message.text, reply_markup=kb if 'kb' in locals() else None)
+        elif message.photo:
+            await client.send_photo(channel_id, message.photo.file_id, caption=clean_text, reply_markup=kb if 'kb' in locals() else None)
+        elif message.video:
+            await client.send_video(channel_id, message.video.file_id, caption=clean_text, reply_markup=kb if 'kb' in locals() else None)
+    except Exception as e:
+        print(f"❌ Failed to send to channel {channel_id}: {e}")
 
 # ✅ 2. Delete Last Post
 @app.on_message(filters.private & filters.user(ADMIN_ID) & filters.command("delete"))
