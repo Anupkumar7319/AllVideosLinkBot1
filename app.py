@@ -15,6 +15,8 @@ from pyrogram.types import Message, InlineKeyboardMarkup, InlineKeyboardButton
 from flask import Flask, request
 from config import API_ID, API_HASH, BOT_TOKEN, ADMIN_ID, ONLINE_USERS, USER_FILE, POST_FILE, CHANNELS_ID
 
+for channel_id in CHANNELS_ID:
+    
 # Initialize Clients
 app = Client("AllVideosLink_Bot", api_id=API_ID, api_hash=API_HASH, bot_token=BOT_TOKEN)
 web_app = Flask(__name__)
@@ -179,10 +181,10 @@ async def delete_all_posts(client, message: Message):
 # ✅ 4. Delete by Message ID
 @app.on_message(filters.private & filters.user(ADMIN_ID) & filters.command("selectanddelete"))
 async def delete_by_id(client, message: Message):
-    args = message.text.split()
-    if len(args) != 2 or not args[1].isdigit():
-        await message.reply("⚠️ Usage: /selectanddelete <message_id>")
-        return
+    args = (message.text or "").split()
+if len(args) != 2 or not args[1].isdigit():
+    await message.reply("⚠️ Usage: /selectanddelete <message_id>")
+    return
 
     msg_id = int(args[1])
     for uid in users:
