@@ -1,3 +1,11 @@
+from pymongo import MongoClient
+from config import MONGO_URI, MONGO_DB_NAME, USER_COLLECTION, POST_COLLECTION
+
+mongo_client = MongoClient(MONGO_URI)
+db = mongo_client[MONGO_DB_NAME]
+users_collection = db[USER_COLLECTION]
+posts_collection = db[POST_COLLECTION]
+
 import os
 import json
 import re
