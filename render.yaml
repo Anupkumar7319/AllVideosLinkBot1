@@ -6,3 +6,16 @@ services:
     buildCommand: pip install -r requirements.txt
     startCommand: python app.py
     autoDeploy: false
+    envVars:
+      - key: API_ID
+        value: 12345678              # ✅ Replace with your actual value
+      - key: API_HASH
+        value: your_api_hash         # ✅ Replace with your actual value
+      - key: BOT_TOKEN
+        value: your_bot_token        # ✅ Replace with your actual value
+      - key: ADMIN_ID
+        value: 1234567890            # ✅ Replace with your actual value
+      - key: CHANNELS_ID
+        value: -1001234567890,-1009876543210  # ✅ Comma-separated
+      - key: MONGO_URI
+        value: mongodb+srv://user:pass@cluster.mongodb.net/?retryWrites=true&w=majority
