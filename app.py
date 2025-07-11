@@ -129,10 +129,10 @@ posts_collection.insert_one(new_post)
 
 # Load all posts
 saved_posts = list(posts_collection.find())
-    await client.send_message(ADMIN_ID, "✅ Broadcast done and saved.")
 
 # 🔁 Broadcast to all registered channels
 for channel_id in CHANNELS:
+    try:
         if message.text:
             await client.send_message(channel_id, message.text, reply_markup=kb if 'kb' in locals() else None)
         elif message.photo:
@@ -142,6 +142,8 @@ for channel_id in CHANNELS:
     except Exception as e:
         print(f"❌ Failed to send to channel {channel_id}: {e}")
 
+# ✅ Inform Admin after broadcasting
+await client.send_message(ADMIN_ID, "✅ Broadcast done and saved.")
 # ✅ 2. Delete Last Post
 @app.on_message(filters.private & filters.user(ADMIN_ID) & filters.command("delete"))
 async def delete_last_post(client, message: Message):
