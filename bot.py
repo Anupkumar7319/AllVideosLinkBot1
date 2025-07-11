@@ -95,8 +95,42 @@ async def start(client, message: Message):
 # ====== Admin Broadcast ======
 @app.on_message(filters.private & filters.user(ADMIN_ID))
 async def admin_post(client, message: Message):
-    pass
-    # ====== Delete Last Post from All Users ======
+    caption = message.caption or ""
+    text = message.text or caption
+    links = extract_links(text)
+    clean_text = remove_links_from_text(text, links)
+    buttons = [{"text": f"🔗 Visit Link {i+1}", "url": link} for i, link in enumerate(links)]
+    kb = build_keyboard(buttons) if buttons else None
+
+    if message.text:
+        new_post = {"type": "text", "text": clean_text, "buttons": buttons}
+    elif message.photo:
+        new_post = {"type": "photo", "file_id": message.photo.file_id, "caption": clean_text, "buttons": buttons}
+    elif message.video:
+        new_post = {"type": "video", "file_id": message.video.file_id, "caption": clean_text, "buttons": buttons}
+    else:
+        return
+
+    new_post["messages"] = {}
+
+    for uid in users:
+        try:
+            if new_post["type"] == "text":
+                sent = await client.send_message(uid, clean_text, reply_markup=kb)
+            elif new_post["type"] == "photo":
+                sent = await client.send_photo(uid, new_post["file_id"], caption=clean_text, reply_markup=kb)
+            elif new_post["type"] == "video":
+                sent = await client.send_video(uid, new_post["file_id"], caption=clean_text, reply_markup=kb)
+            new_post["messages"][str(uid)] = sent.id
+        except Exception as e:
+            print(f"❌ Failed to send to {uid}: {e}")
+
+    saved_posts.append(new_post)
+    save_json(POST_FILE, saved_posts)
+    await client.send_message(ADMIN_ID, "✅ Broadcast done and saved.")
+
+pass
+    #  Delete Last Post from All Users ======
 @app.on_message(filters.private & filters.user(ADMIN_ID) & filters.command("delete"))
 async def delete_last_post(client, message: Message):
     if saved_posts:
@@ -142,43 +176,6 @@ async def delete_by_id(client, message: Message):
         except Exception as e:
             print(f"❌ Failed to delete from {uid}: {e}")
     await message.reply(f"✅ Post with message ID {msg_id} deleted from all users.")
-
-    @app.on_message(filters.private & filters.user(ADMIN_ID))
-async def admin_post(client, message: Message):
-    
-    caption = message.caption or ""
-    text = message.text or caption
-    links = extract_links(text)
-    clean_text = remove_links_from_text(text, links)
-    buttons = [{"text": f"🔗 Visit Link {i+1}", "url": link} for i, link in enumerate(links)]
-    kb = build_keyboard(buttons) if buttons else None
-
-    if message.text:
-        new_post = {"type": "text", "text": clean_text, "buttons": buttons}
-    elif message.photo:
-        new_post = {"type": "photo", "file_id": message.photo.file_id, "caption": clean_text, "buttons": buttons}
-    elif message.video:
-        new_post = {"type": "video", "file_id": message.video.file_id, "caption": clean_text, "buttons": buttons}
-    else:
-        return
-
-    new_post["messages"] = {}
-
-    for uid in users:
-        try:
-            if new_post["type"] == "text":
-                sent = await client.send_message(uid, clean_text, reply_markup=kb)
-            elif new_post["type"] == "photo":
-                sent = await client.send_photo(uid, new_post["file_id"], caption=clean_text, reply_markup=kb)
-            elif new_post["type"] == "video":
-                sent = await client.send_video(uid, new_post["file_id"], caption=clean_text, reply_markup=kb)
-            new_post["messages"][str(uid)] = sent.id
-        except Exception as e:
-            print(f"❌ Failed to send to {uid}: {e}")
-
-    saved_posts.append(new_post)
-    save_json(POST_FILE, saved_posts)
-    await client.send_message(ADMIN_ID, "✅ Broadcast done and saved.")
 
 # ====== Inline Stats ======
 @app.on_callback_query(filters.regex("stats"))
