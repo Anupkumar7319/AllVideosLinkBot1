@@ -15,10 +15,8 @@ from pyrogram.types import Message, InlineKeyboardMarkup, InlineKeyboardButton
 from flask import Flask, request
 from config import API_ID, API_HASH, BOT_TOKEN, ADMIN_ID, ONLINE_USERS, USER_FILE, POST_FILE, CHANNELS_ID
 
-for channels_id in CHANNELS_ID:
-    
 # Initialize Clients
-app = Client("AllVideosLink_Bot", api_id=API_ID, api_hash=API_HASH, bot_token=BOT_TOKEN, channels_id=CHANNELS_ID)
+app = Client("AllVideosLink_Bot", api_id=API_ID, api_hash=API_HASH, bot_token=BOT_TOKEN)
 web_app = Flask(__name__)
 
 # Helper Functions
@@ -43,16 +41,16 @@ def remove_links_from_text(text, links):
         text = text.replace(link, '')
     return text.strip()
 
-
+# ✅ 0. Start Command Handler
 @app.on_message(filters.command("start") & filters.private)
 async def start(client, message: Message):
     user_id = message.from_user.id
     user_name = message.from_user.first_name
 
     users_collection.update_one(
-    {"user_id": user_id},
-    {"$set": {"name": user_name}},
-    upsert=True
+        {"user_id": user_id},
+        {"$set": {"name": user_name}},
+        upsert=True
     )
 
     welcome = f"Hello! {user_name}, welcome to @AllVideosLink_Bot."
@@ -65,7 +63,7 @@ async def start(client, message: Message):
     )
 
     saved_posts = list(posts_collection.find())
-    
+
     for post in saved_posts:
         try:
             buttons = post.get("buttons", [])
@@ -80,17 +78,8 @@ async def start(client, message: Message):
                 await client.send_video(user_id, post["file_id"], caption=clean_text, reply_markup=kb)
         except Exception as e:
             print(f"❌ Failed to send to {user_id}: {e}")
-            
-            if post["type"] == "text":
-                await client.send_message(user_id, clean_text, reply_markup=kb)
-            elif post["type"] == "photo":
-                await client.send_photo(user_id, post["file_id"], caption=clean_text, reply_markup=kb)
-            elif post["type"] == "video":
-                await client.send_video(user_id, post["file_id"], caption=clean_text, reply_markup=kb)
-        except Exception as e:
-            print(f"❌ Failed to send to {user_id}: {e}")
 
-    # ✅ 1. Admin Broadcast Function
+# ✅ 1. Admin Broadcast Function
 @app.on_message(filters.private & filters.user(ADMIN_ID))
 async def admin_post(client, message: Message):
     caption = message.caption or ""
@@ -111,48 +100,47 @@ async def admin_post(client, message: Message):
 
     new_post["messages"] = {}
 
-for user in users_collection.find():
-    uid = user["user_id"]
-    try:
-    if new_post["type"] == "text":
-        sent = await client.send_message(uid, clean_text, reply_markup=kb)
-    elif new_post["type"] == "photo":
-        sent = await client.send_photo(uid, new_post["file_id"], caption=clean_text, reply_markup=kb)
-    elif new_post["type"] == "video":
-        sent = await client.send_video(uid, new_post["file_id"], caption=clean_text, reply_markup=kb)
-    
-    new_post["messages"][str(uid)] = sent.id  # ✅ Move inside try block
+    for user in users_collection.find():
+        uid = user["user_id"]
+        try:
+            if new_post["type"] == "text":
+                sent = await client.send_message(uid, clean_text, reply_markup=kb)
+            elif new_post["type"] == "photo":
+                sent = await client.send_photo(uid, new_post["file_id"], caption=clean_text, reply_markup=kb)
+            elif new_post["type"] == "video":
+                sent = await client.send_video(uid, new_post["file_id"], caption=clean_text, reply_markup=kb)
 
-except Exception as e:
-    print(f"❌ Failed to send to {uid}: {e}")
+            new_post["messages"][str(uid)] = sent.id
+        except Exception as e:
+            print(f"❌ Failed to send to {uid}: {e}")
 
-    # Save new post
-posts_collection.insert_one(new_post)
+    posts_collection.insert_one(new_post)
+    saved_posts = list(posts_collection.find())
 
-# Load all posts
-saved_posts = list(posts_collection.find())
+    # 🔁 Broadcast to all registered channels
+    for channel_id in CHANNELS_ID:
+        try:
+            if message.text:
+                await client.send_message(channel_id, message.text, reply_markup=kb)
+            elif message.photo:
+                await client.send_photo(channel_id, message.photo.file_id, caption=clean_text, reply_markup=kb)
+            elif message.video:
+                await client.send_video(channel_id, message.video.file_id, caption=clean_text, reply_markup=kb)
+        except Exception as e:
+            print(f"❌ Failed to send to channel {channel_id}: {e}")
 
-# 🔁 Broadcast to all registered channels
-for channel_id in CHANNELS:
-    try:
-        if message.text:
-            await client.send_message(channel_id, message.text, reply_markup=kb if 'kb' in locals() else None)
-        elif message.photo:
-            await client.send_photo(channel_id, message.photo.file_id, caption=clean_text, reply_markup=kb if 'kb' in locals() else None)
-        elif message.video:
-            await client.send_video(channel_id, message.video.file_id, caption=clean_text, reply_markup=kb if 'kb' in locals() else None)
-    except Exception as e:
-        print(f"❌ Failed to send to channel {channel_id}: {e}")
+    await client.send_message(ADMIN_ID, "✅ Broadcast done and saved.")
 
-# ✅ Inform Admin after broadcasting
-await client.send_message(ADMIN_ID, "✅ Broadcast done and saved.")
 # ✅ 2. Delete Last Post
 @app.on_message(filters.private & filters.user(ADMIN_ID) & filters.command("delete"))
 async def delete_last_post(client, message: Message):
+    saved_posts = list(posts_collection.find())
     if saved_posts:
         last_post = saved_posts.pop()
-        save_json(POST_FILE, saved_posts)
-        for uid in users:
+        posts_collection.delete_one({"_id": last_post["_id"]})
+
+        for user in users_collection.find():
+            uid = user["user_id"]
             msg_id = last_post.get("messages", {}).get(str(uid))
             if msg_id:
                 try:
@@ -166,44 +154,48 @@ async def delete_last_post(client, message: Message):
 # ✅ 3. Delete All Posts
 @app.on_message(filters.private & filters.user(ADMIN_ID) & filters.command("alldelete"))
 async def delete_all_posts(client, message: Message):
+    saved_posts = list(posts_collection.find())
     for post in saved_posts:
-        for uid in users:
+        for user in users_collection.find():
+            uid = user["user_id"]
             msg_id = post.get("messages", {}).get(str(uid))
             if msg_id:
                 try:
                     await client.delete_messages(uid, msg_id)
                 except Exception as e:
                     print(f"❌ Failed to delete from {uid}: {e}")
-    saved_posts.clear()
-    save_json(POST_FILE, saved_posts)
+    posts_collection.delete_many({})
     await message.reply("✅ All posts deleted from all users.")
 
 # ✅ 4. Delete by Message ID
 @app.on_message(filters.private & filters.user(ADMIN_ID) & filters.command("selectanddelete"))
 async def delete_by_id(client, message: Message):
     args = (message.text or "").split()
-if len(args) != 2 or not args[1].isdigit():
-    await message.reply("⚠️ Usage: /selectanddelete <message_id>")
-    return
+    if len(args) != 2 or not args[1].isdigit():
+        await message.reply("⚠️ Usage: /selectanddelete <message_id>")
+        return
 
     msg_id = int(args[1])
-    for uid in users:
+    for user in users_collection.find():
+        uid = user["user_id"]
         try:
             await client.delete_messages(uid, msg_id)
         except Exception as e:
             print(f"❌ Failed to delete from {uid}: {e}")
     await message.reply(f"✅ Post with message ID {msg_id} deleted from all users.")
 
+# ✅ 5. Callback Query Handler for Stats
 @app.on_callback_query(filters.regex("stats"))
 async def show_stats(client, callback_query):
     await callback_query.answer(f"Estimated Online Users: {ONLINE_USERS}", show_alert=True)
 
+# ✅ 6. Flask Webhook Root Check
 @web_app.route("/", methods=["GET"])
 def root():
     return "Bot is running!", 200
 
+# ✅ 7. Run Flask + Pyrogram Client
 if __name__ == "__main__":
-    import threading
     try:
         threading.Thread(target=lambda: web_app.run(host="0.0.0.0", port=5000), daemon=True).start()
         app.run()
