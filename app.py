@@ -114,17 +114,17 @@ async def admin_post(client, message: Message):
 for user in users_collection.find():
     uid = user["user_id"]
     try:
-        if new_post["type"] == "text":
-            sent = await client.send_message(uid, clean_text, reply_markup=kb)
-        elif new_post["type"] == "photo":
-            sent = await client.send_photo(uid, new_post["file_id"], caption=clean_text, reply_markup=kb)
-        elif new_post["type"] == "video":
-            sent = await client.send_video(uid, new_post["file_id"], caption=clean_text, reply_markup=kb)
-        
-        new_post["messages"][str(uid)] = sent.id
+    if new_post["type"] == "text":
+        sent = await client.send_message(uid, clean_text, reply_markup=kb)
+    elif new_post["type"] == "photo":
+        sent = await client.send_photo(uid, new_post["file_id"], caption=clean_text, reply_markup=kb)
+    elif new_post["type"] == "video":
+        sent = await client.send_video(uid, new_post["file_id"], caption=clean_text, reply_markup=kb)
+    
+    new_post["messages"][str(uid)] = sent.id  # ✅ Move inside try block
 
-    except Exception as e:
-        print(f"❌ Failed to send to {uid}: {e}")
+except Exception as e:
+    print(f"❌ Failed to send to {uid}: {e}")
 
     # Save new post
 posts_collection.insert_one(new_post)
