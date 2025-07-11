@@ -2,5 +2,5 @@ pyrogram==2.0.106
 tgcrypto==1.2.5
 flask
 python-dotenv
-pymongo[srv]
+pymongo==4.13.2
 dnspython
