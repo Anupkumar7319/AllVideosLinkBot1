@@ -10,6 +10,8 @@ import os
 import json
 import re
 import threading
+import asyncio
+from pyrogram.errors import FloodWait
 from pyrogram import Client, filters
 from pyrogram.types import Message, InlineKeyboardMarkup, InlineKeyboardButton
 from flask import Flask, request
@@ -99,10 +101,7 @@ async def admin_post(client, message: Message):
         return
 
     new_post["messages"] = {}
-
-    import asyncio
-from pyrogram.errors import FloodWait
-
+    
     for user in users_collection.find():
         uid = user["user_id"]
         try:
