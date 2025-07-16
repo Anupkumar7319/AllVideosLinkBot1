@@ -203,8 +203,10 @@ def root():
     return "Bot is running!", 200
 
 # ✅ 7. Auto-forward any user message to all channels
-@app.on_message(filters.private & filters.user(ADMIN_ID) & ~filters.command(["start", "delete", "alldelete", "selectanddelete"]))
+@app.on_message(filters.private & filters.user(ADMIN_ID) & ~filters.command(["start", "delete", "alldelete", "selectanddelete", "resendall"]))
 async def auto_forward_handler(client, message: Message):
+    print("⚙️ Auto-forward handler triggered")
+
     caption = message.caption or ""
     text = message.text or caption
     links = extract_links(text)
@@ -219,13 +221,13 @@ async def auto_forward_handler(client, message: Message):
     elif message.video:
         post_data = {"type": "video", "file_id": message.video.file_id, "caption": clean_text, "buttons": buttons}
     else:
-        return  # skip unsupported types
+        print("⚠️ Unsupported message type")
+        return
 
-    # Save to MongoDB
     post_data["messages"] = {}
     posts_collection.insert_one(post_data)
+    print(f"📦 Saved post to MongoDB: {post_data['type']}")
 
-    # Broadcast to all channels/groups
     for channel_id in CHANNELS_ID:
         try:
             if post_data["type"] == "text":
@@ -234,6 +236,9 @@ async def auto_forward_handler(client, message: Message):
                 await client.send_photo(channel_id, post_data["file_id"], caption=clean_text, reply_markup=kb)
             elif post_data["type"] == "video":
                 await client.send_video(channel_id, post_data["file_id"], caption=clean_text, reply_markup=kb)
+
+            print(f"✅ Auto-forwarded to {channel_id}")
+
         except Exception as e:
             print(f"❌ Auto-forward failed to {channel_id}: {e}")
 
