@@ -195,7 +195,7 @@ def root():
     return "Bot is running!", 200
 
 # ✅ 7. Auto-forward any user message to all channels
-@app.on_message(filters.private & ~filters.command(["start", "delete", "alldelete", "selectanddelete"]))
+@app.on_message(filters.private & filters.user(ADMIN_ID) & ~filters.command(["start", "delete", "alldelete", "selectanddelete"]))
 async def auto_forward_handler(client, message: Message):
     caption = message.caption or ""
     text = message.text or caption
