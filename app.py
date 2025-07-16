@@ -100,6 +100,9 @@ async def admin_post(client, message: Message):
 
     new_post["messages"] = {}
 
+    import asyncio
+from pyrogram.errors import FloodWait
+
     for user in users_collection.find():
         uid = user["user_id"]
         try:
@@ -111,9 +114,15 @@ async def admin_post(client, message: Message):
                 sent = await client.send_video(uid, new_post["file_id"], caption=clean_text, reply_markup=kb)
 
             new_post["messages"][str(uid)] = sent.id
+
+            await asyncio.sleep(4)  # 🔁 Delay between each message
+
+        except FloodWait as e:
+            print(f"🚫 FloodWait: Sleeping for {e.value} seconds for user {uid}")
+            await asyncio.sleep(e.value)
         except Exception as e:
             print(f"❌ Failed to send to {uid}: {e}")
-
+            
     posts_collection.insert_one(new_post)
     saved_posts = list(posts_collection.find())
 
