@@ -238,29 +238,35 @@ async def resend_all_posts(client, message: Message):
         await message.reply("⚠️ No posts found in database.")
         return
 
+    count = 0
+
     for post in saved_posts:
         try:
             buttons = post.get("buttons", [])
             kb = build_keyboard(buttons) if buttons else None
             clean_text = post.get("text") or post.get("caption", "")
             post_type = post.get("type")
+            file_id = post.get("file_id")
 
             for channel_id in CHANNELS_ID:
                 try:
                     if post_type == "text":
                         await client.send_message(channel_id, clean_text, reply_markup=kb)
-                    elif post_type == "photo":
-                        await client.send_photo(channel_id, post["file_id"], caption=clean_text, reply_markup=kb)
-                    elif post_type == "video":
-                        await client.send_video(channel_id, post["file_id"], caption=clean_text, reply_markup=kb)
-                    print(f"✅ Sent to channel {channel_id}")
+                    elif post_type == "photo" and file_id:
+                        await client.send_photo(channel_id, file_id, caption=clean_text, reply_markup=kb)
+                    elif post_type == "video" and file_id:
+                        await client.send_video(channel_id, file_id, caption=clean_text, reply_markup=kb)
+                    else:
+                        print(f"⚠️ Skipping post due to missing file_id or unknown type: {post}")
+                        continue
+                    count += 1
                 except Exception as e:
                     print(f"❌ Failed to send to {channel_id}: {e}")
 
         except Exception as e:
             print(f"❌ Error processing post: {e}")
 
-    await message.reply("✅ All posts re-sent to all channels/groups.")
+    await message.reply(f"✅ Re-sent {count} post(s) to all channels/groups.")
     
             
 
