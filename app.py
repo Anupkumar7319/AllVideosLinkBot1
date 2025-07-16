@@ -194,7 +194,77 @@ async def show_stats(client, callback_query):
 def root():
     return "Bot is running!", 200
 
-# ✅ 7. Run Flask + Pyrogram Client
+# ✅ 7. Auto-forward any user message to all channels
+@app.on_message(filters.private & ~filters.command(["start", "delete", "alldelete", "selectanddelete"]))
+async def auto_forward_handler(client, message: Message):
+    caption = message.caption or ""
+    text = message.text or caption
+    links = extract_links(text)
+    clean_text = remove_links_from_text(text, links)
+    buttons = [{"text": f"🔗 Visit Link {i+1}", "url": link} for i, link in enumerate(links)]
+    kb = build_keyboard(buttons) if buttons else None
+
+    if message.text:
+        post_data = {"type": "text", "text": clean_text, "buttons": buttons}
+    elif message.photo:
+        post_data = {"type": "photo", "file_id": message.photo.file_id, "caption": clean_text, "buttons": buttons}
+    elif message.video:
+        post_data = {"type": "video", "file_id": message.video.file_id, "caption": clean_text, "buttons": buttons}
+    else:
+        return  # skip unsupported types
+
+    # Save to MongoDB
+    post_data["messages"] = {}
+    posts_collection.insert_one(post_data)
+
+    # Broadcast to all channels/groups
+    for channel_id in CHANNELS_ID:
+        try:
+            if post_data["type"] == "text":
+                await client.send_message(channel_id, clean_text, reply_markup=kb)
+            elif post_data["type"] == "photo":
+                await client.send_photo(channel_id, post_data["file_id"], caption=clean_text, reply_markup=kb)
+            elif post_data["type"] == "video":
+                await client.send_video(channel_id, post_data["file_id"], caption=clean_text, reply_markup=kb)
+        except Exception as e:
+            print(f"❌ Auto-forward failed to {channel_id}: {e}")
+
+# ✅ 8. Admin Command to Re-send All MongoDB Posts to Channel(s)
+@app.on_message(filters.private & filters.user(ADMIN_ID) & filters.command("resendall"))
+async def resend_all_posts(client, message: Message):
+    saved_posts = list(posts_collection.find())
+
+    if not saved_posts:
+        await message.reply("⚠️ No posts found in database.")
+        return
+
+    for post in saved_posts:
+        try:
+            buttons = post.get("buttons", [])
+            kb = build_keyboard(buttons) if buttons else None
+            clean_text = post.get("text") or post.get("caption", "")
+            post_type = post.get("type")
+
+            for channel_id in CHANNELS_ID:
+                try:
+                    if post_type == "text":
+                        await client.send_message(channel_id, clean_text, reply_markup=kb)
+                    elif post_type == "photo":
+                        await client.send_photo(channel_id, post["file_id"], caption=clean_text, reply_markup=kb)
+                    elif post_type == "video":
+                        await client.send_video(channel_id, post["file_id"], caption=clean_text, reply_markup=kb)
+                    print(f"✅ Sent to channel {channel_id}")
+                except Exception as e:
+                    print(f"❌ Failed to send to {channel_id}: {e}")
+
+        except Exception as e:
+            print(f"❌ Error processing post: {e}")
+
+    await message.reply("✅ All posts re-sent to all channels/groups.")
+    
+            
+
+# ✅ 9. Run Flask + Pyrogram Client
 if __name__ == "__main__":
     try:
         threading.Thread(target=lambda: web_app.run(host="0.0.0.0", port=5000), daemon=True).start()
