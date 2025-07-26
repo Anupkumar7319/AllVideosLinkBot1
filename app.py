@@ -114,7 +114,7 @@ async def admin_post(client, message: Message):
 
             new_post["messages"][str(uid)] = sent.id
 
-            await asyncio.sleep(1)  # ðŸ” Delay between each message
+            await asyncio.sleep(0.2)  # ðŸ” Delay between each message
 
         except FloodWait as e:
             print(f"ðŸš« FloodWait: Sleeping for {e.value} seconds for user {uid}")
