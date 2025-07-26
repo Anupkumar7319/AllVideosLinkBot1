@@ -90,10 +90,8 @@ async def start(client, message: Message):
 async def admin_post(client, message: Message):
     caption = message.caption or ""
     text = message.text or caption
-    links = extract_links(text)
-    clean_text = remove_links_from_text(text, links)
-    buttons = [{"text": f"ðŸ”— Visit Link {i+1}", "url": link} for i, link in enumerate(links)]
-    kb = build_keyboard(buttons) if buttons else None
+    clean_text = text  # No link removal
+kb = None  # No buttons
 
     if message.text:
         new_post = {"type": "text", "text": clean_text, "buttons": buttons}
