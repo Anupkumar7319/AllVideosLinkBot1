@@ -90,15 +90,15 @@ async def start(client, message: Message):
 async def admin_post(client, message: Message):
     caption = message.caption or ""
     text = message.text or caption
-    clean_text = text  # No link removal
-kb = None  # No buttons
+    clean_text = text
+    kb = None  # No buttons
 
     if message.text:
-        new_post = {"type": "text", "text": clean_text, "buttons": buttons}
+        new_post = {"type": "text", "text": clean_text, "buttons": []}
     elif message.photo:
-        new_post = {"type": "photo", "file_id": message.photo.file_id, "caption": clean_text, "buttons": buttons}
+        new_post = {"type": "photo", "file_id": message.photo.file_id, "caption": clean_text, "buttons": []}
     elif message.video:
-        new_post = {"type": "video", "file_id": message.video.file_id, "caption": clean_text, "buttons": buttons}
+        new_post = {"type": "video", "file_id": message.video.file_id, "caption": clean_text, "buttons": []}
     else:
         return
 
@@ -107,30 +107,33 @@ kb = None  # No buttons
     for uid in users:
         try:
             if new_post["type"] == "text":
-                sent = await client.send_message(uid, clean_text, reply_markup=kb)
+                sent = await client.send_message(uid, clean_text)
             elif new_post["type"] == "photo":
-                sent = await client.send_photo(uid, new_post["file_id"], caption=clean_text, reply_markup=kb)
+                sent = await client.send_photo(uid, new_post["file_id"], caption=clean_text)
             elif new_post["type"] == "video":
-                sent = await client.send_video(uid, new_post["file_id"], caption=clean_text, reply_markup=kb)
-            new_post["messages"][str(uid)] = sent.id
-        except Exception as e:
-            print(f"âŒ Failed to send to {uid}: {e}")
+                sent = await client.send_video(uid, new_post["file_id"], caption=clean_text)
 
-    # ðŸ” Broadcast to all registered channels
+            new_post["messages"][str(uid)] = sent.id
+
+        except Exception as e:
+            print(f"❌ Failed to send to {uid}: {e}")
+
+    # 📡 Broadcast to all channels without buttons
     for channel_id in CHANNELS:
         try:
             if message.text:
-                await client.send_message(channel_id, message.text, reply_markup=kb)
+                await client.send_message(channel_id, message.text)
             elif message.photo:
-                await client.send_photo(channel_id, message.photo.file_id, caption=clean_text, reply_markup=kb)
+                await client.send_photo(channel_id, message.photo.file_id, caption=clean_text)
             elif message.video:
-                await client.send_video(channel_id, message.video.file_id, caption=clean_text, reply_markup=kb)
+                await client.send_video(channel_id, message.video.file_id, caption=clean_text)
         except Exception as e:
-            print(f"âŒ Failed to send to channel {channel_id}: {e}")
+            print(f"❌ Failed to send to channel {channel_id}: {e}")
 
     saved_posts.append(new_post)
     save_json(POST_FILE, saved_posts)
-    await client.send_message(ADMIN_ID, "âœ… Broadcast done and saved.")
+
+    await client.send_message(ADMIN_ID, "✅ Broadcast done and saved.")
 
 # âœ… 2. Delete Last Post
 @app.on_message(filters.private & filters.user(ADMIN_ID) & filters.command("delete"))
