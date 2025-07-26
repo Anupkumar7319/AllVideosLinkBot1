@@ -86,56 +86,54 @@ async def start(client, message: Message):
 async def admin_post(client, message: Message):
     caption = message.caption or ""
     text = message.text or caption
-    clean_text = text  # No link removal
-kb = None  # No buttons
+    clean_text = text
+    kb = None  # No buttons
 
     if message.text:
-        new_post = {"type": "text", "text": clean_text, "buttons": buttons}
+        new_post = {"type": "text", "text": clean_text, "buttons": []}
     elif message.photo:
-        new_post = {"type": "photo", "file_id": message.photo.file_id, "caption": clean_text, "buttons": buttons}
+        new_post = {"type": "photo", "file_id": message.photo.file_id, "caption": clean_text, "buttons": []}
     elif message.video:
-        new_post = {"type": "video", "file_id": message.video.file_id, "caption": clean_text, "buttons": buttons}
+        new_post = {"type": "video", "file_id": message.video.file_id, "caption": clean_text, "buttons": []}
     else:
         return
 
     new_post["messages"] = {}
-    
+
     for user in users_collection.find():
         uid = user["user_id"]
         try:
             if new_post["type"] == "text":
-                sent = await client.send_message(uid, clean_text, reply_markup=kb)
+                sent = await client.send_message(uid, clean_text)
             elif new_post["type"] == "photo":
-                sent = await client.send_photo(uid, new_post["file_id"], caption=clean_text, reply_markup=kb)
+                sent = await client.send_photo(uid, new_post["file_id"], caption=clean_text)
             elif new_post["type"] == "video":
-                sent = await client.send_video(uid, new_post["file_id"], caption=clean_text, reply_markup=kb)
+                sent = await client.send_video(uid, new_post["file_id"], caption=clean_text)
 
             new_post["messages"][str(uid)] = sent.id
-
-            await asyncio.sleep(0.2)  # ðŸ” Delay between each message
+            await asyncio.sleep(0.2)
 
         except FloodWait as e:
-            print(f"ðŸš« FloodWait: Sleeping for {e.value} seconds for user {uid}")
+            print(f"⏳ FloodWait: Sleeping for {e.value} seconds for user {uid}")
             await asyncio.sleep(e.value)
         except Exception as e:
-            print(f"âŒ Failed to send to {uid}: {e}")
-            
-    posts_collection.insert_one(new_post)
-    saved_posts = list(posts_collection.find())
+            print(f"❌ Failed to send to {uid}: {e}")
 
-    # ðŸ” Broadcast to all registered channels
+    posts_collection.insert_one(new_post)
+
+    # Forward to all channels without buttons
     for channel_id in CHANNELS_ID:
         try:
             if message.text:
-                await client.send_message(channel_id, message.text, reply_markup=kb)
+                await client.send_message(channel_id, message.text)
             elif message.photo:
-                await client.send_photo(channel_id, message.photo.file_id, caption=clean_text, reply_markup=kb)
+                await client.send_photo(channel_id, message.photo.file_id, caption=clean_text)
             elif message.video:
-                await client.send_video(channel_id, message.video.file_id, caption=clean_text, reply_markup=kb)
+                await client.send_video(channel_id, message.video.file_id, caption=clean_text)
         except Exception as e:
-            print(f"âŒ Failed to send to channel {channel_id}: {e}")
+            print(f"❌ Failed to send to channel {channel_id}: {e}")
 
-    await client.send_message(ADMIN_ID, "âœ… Broadcast done and saved.")
+    await client.send_message(ADMIN_ID, "✅ Broadcast done and saved.")
 
 # âœ… 2. Delete Last Post
 @app.on_message(filters.private & filters.user(ADMIN_ID) & filters.command("delete"))
